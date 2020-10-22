@@ -542,6 +542,16 @@ class DeeppolyGather:
         return element
 
 
+class DeeppolyConcat:
+    def __init__(self, predecessors, input_names, output_name, output_shape):
+        add_input_output_information_deeppoly(self, input_names, output_name, output_shape)
+        self.predecessors = np.ascontiguousarray(predecessors, dtype=np.uintp)
+
+    def transformer(self, nn, man, element, nlb, nub, relu_groups, refine, timeout_lp, timeout_milp, use_default_heuristic, testing):
+        handle_concatenation_layer(man, element, self.predecessors, len(self.predecessors))
+        return element
+
+
 class DeeppolySubNode:
     def __init__(self, bias, is_minuend, input_names, output_name, output_shape):
         """

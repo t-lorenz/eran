@@ -262,25 +262,36 @@ def prepare_model(model):
 				shape_map[node.output[0]] = output_shape
 
 		elif node.op_type == "Concat":
-			all_constant = True
-			axis = node.attribute[0].i
-			for input in node.input:
-				if not input in constants_map:
-					all_constant = False
-					break
-			if all_constant:
-				constants_map[node.output[0]] = np.concatenate([constants_map[input] for input in node.input], axis=axis)
+			assert node.attribute[0].i == 1, "Currently only supports concatenation on channel dimension"
+			concatenation_axis = 3  # channel is last dimension in ERAN
+			output_shape = list(shape_map[node.input[0]])
+			for node_input in node.input:
+				assert shape_map[node_input][0] == output_shape[0]
+				assert shape_map[node_input][1] == output_shape[1]
+				assert shape_map[node_input][2] == output_shape[2]
+				output_shape[3] += shape_map[node_input][3]
+			shape_map[node.output[0]] = output_shape
 
-			all_shape_known = True
-			for input in node.input:
-				if not input in shape_map:
-					all_shape_known = False
-					break
-			if all_shape_known:
-				new_axis_size = 0
-				for input in node.input:
-					new_axis_size += shape_map[input][axis]
-				shape_map[node.output[0]] = [shape_map[node.input[0]][i] if i != axis else new_axis_size for i in range(len(shape_map[node.input[0]]))]
+		# elif node.op_type == "Concat":
+		# 	all_constant = True
+		# 	axis = node.attribute[0].i
+		# 	for input in node.input:
+		# 		if not input in constants_map:
+		# 			all_constant = False
+		# 			break
+		# 	if all_constant:
+		# 		constants_map[node.output[0]] = np.concatenate([constants_map[input] for input in node.input], axis=axis)
+		#
+		# 	all_shape_known = True
+		# 	for input in node.input:
+		# 		if not input in shape_map:
+		# 			all_shape_known = False
+		# 			break
+		# 	if all_shape_known:
+		# 		new_axis_size = 0
+		# 		for input in node.input:
+		# 			new_axis_size += shape_map[input][axis]
+		# 		shape_map[node.output[0]] = [shape_map[node.input[0]][i] if i != axis else new_axis_size for i in range(len(shape_map[node.input[0]]))]
 
 		elif node.op_type == "Expand":
 			if node.input[1] in constants_map:
@@ -345,8 +356,10 @@ class ONNXTranslator:
 		in_out_placeholder = ([], placeholder.name, onnxshape_to_intlist(placeholder.type.tensor_type.shape))
 		operation_resources = [{'deepzono':in_out_placeholder, 'deeppoly':in_out_placeholder}]
 		reshape_map = {}
-		operations_to_be_ignored = ["Pack", "Shape", "StridedSlice", "Prod", "Concat", "Unsqueeze", "Softmax", "Flatten", "BatchNormalization"]
+		operations_to_be_ignored = ["Pack", "Shape", "StridedSlice", "Prod", "Unsqueeze", "Softmax", "Flatten", "BatchNormalization"]
 		#print("nodes ", self.nodes, "placeholder ", self.model.graph.input[0])
+		output_name_to_layer_index = {}
+		current_layer = 0
 		for node in self.nodes:
 			if node.op_type == "Constant":
 				continue
@@ -385,6 +398,8 @@ class ONNXTranslator:
 				input_onnx_names.append(name)
 			shape = self.get_shape(node.output[0])
 			in_out_info = (input_onnx_names, node.output[0], shape)
+
+			output_name_to_layer_index[node.output[0]] = current_layer
 
 			if node.op_type == "MatMul":
 				deeppoly_res = self.matmul_resources(node) + in_out_info
@@ -478,9 +493,16 @@ class ONNXTranslator:
 						deeppoly_res = (indexes,) + in_out_info
 						deepzono_res = deeppoly_res
 						operation_resources.append({'deepzono':deepzono_res, 'deeppoly':deeppoly_res})
+
+			elif node.op_type == "Concat":
+				predecessors = []
+				for node_input in node.input:
+					assert node_input in output_name_to_layer_index, f"Unable to find layer index for input {node_input}"
+					predecessors.append(output_name_to_layer_index[node_input])
+				operation_resources.append({'deeppoly': (predecessors,) + in_out_info})
 			else:
 				assert 0, "Operations of type " + node.op_type + " are not yet supported."
-
+			current_layer += 1
 		return operation_types, operation_resources
 
 	def ignore_node(self, node, operation_types, reshape_map):
