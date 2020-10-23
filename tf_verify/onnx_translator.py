@@ -265,11 +265,12 @@ def prepare_model(model):
 			assert node.attribute[0].i == 1, "Currently only supports concatenation on channel dimension"
 			concatenation_axis = 3  # channel is last dimension in ERAN
 			output_shape = list(shape_map[node.input[0]])
+			output_shape[concatenation_axis] = 0
 			for node_input in node.input:
 				assert shape_map[node_input][0] == output_shape[0]
 				assert shape_map[node_input][1] == output_shape[1]
 				assert shape_map[node_input][2] == output_shape[2]
-				output_shape[3] += shape_map[node_input][3]
+				output_shape[concatenation_axis] += shape_map[node_input][concatenation_axis]
 			shape_map[node.output[0]] = output_shape
 
 		# elif node.op_type == "Concat":
