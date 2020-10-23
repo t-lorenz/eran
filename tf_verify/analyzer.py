@@ -318,7 +318,8 @@ class Analyzer:
 
             flag = True
             for candidate_label in candidate_labels:
-                if candidate_label != true_label and not self.is_greater(self.man, element, true_label, n * number_points + candidate_label, self.use_default_heuristic):
+                #TODO: make number of classes dynamic
+                if candidate_label != true_label and not self.is_greater(self.man, element, true_label, n * 50 + candidate_label, self.use_default_heuristic):
                     flag = False
                     label_failed.append(candidate_label)
                     break
