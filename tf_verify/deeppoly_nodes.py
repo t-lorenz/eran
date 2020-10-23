@@ -549,6 +549,9 @@ class DeeppolyConcat:
 
     def transformer(self, nn, man, element, nlb, nub, relu_groups, refine, timeout_lp, timeout_milp, use_default_heuristic, testing):
         handle_concatenation_layer(man, element, self.predecessors, len(self.predecessors))
+        calc_bounds(man, element, nn, nlb, nub, relu_groups, is_refine_layer=True, destroy=False)
+        if testing:
+            return element, nlb[-1], nub[-1]
         return element
 
 
