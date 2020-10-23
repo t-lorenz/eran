@@ -41,6 +41,7 @@ class layers:
         self.conv_counter = 0
         self.residual_counter = 0
         self.pool_counter = 0
+        self.concat_counter = 0
         self.activation_counter = 0
         self.specLB = []
         self.specUB = []
@@ -53,7 +54,7 @@ class layers:
         self.prop = -1
 
     def calc_layerno(self):
-        return self.ffn_counter + self.conv_counter + self.residual_counter + self.pool_counter + self.activation_counter
+        return self.ffn_counter + self.conv_counter + self.residual_counter + self.pool_counter + self.activation_counter + self.concat_counter
 
     def is_ffn(self):
         return not any(x in ['Conv2D', 'Conv2DNoReLU', 'Resadd', 'Resaddnorelu'] for x in self.layertypes)
@@ -155,10 +156,7 @@ class Analyzer:
         testing_nlb = []
         testing_nub = []
         for i in range(1, len(self.ir_list)):
-            print(f"Executing layer {i} of type {self.ir_list[i]}") # TODO
             element_test_bounds = self.ir_list[i].transformer(self.nn, self.man, element, nlb, nub, self.relu_groups, 'refine' in self.domain, self.timeout_lp, self.timeout_milp, self.use_default_heuristic, self.testing)
-
-            print(self.testing and isinstance(element_test_bounds, tuple))
             if self.testing and isinstance(element_test_bounds, tuple):
                 element, test_lb, test_ub = element_test_bounds
                 testing_nlb.append(test_lb)
@@ -195,6 +193,7 @@ class Analyzer:
             self.nn.ffn_counter = 0
             self.nn.conv_counter = 0
             self.nn.pool_counter = 0
+            self.nn.concat_counter = 0
             self.nn.residual_counter = 0
             self.nn.activation_counter = 0
             counter, var_list, model = create_model(self.nn, self.nn.specLB, self.nn.specUB, nlb, nub,self.relu_groups, self.nn.numlayer, config.complete==True)

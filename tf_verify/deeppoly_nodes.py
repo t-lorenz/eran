@@ -377,6 +377,7 @@ class DeeppolyTanhNode(DeeppolyNonlinearity):
 
 class DeeppolyConv2dNode:
     def __init__(self, filters, strides, pad_top, pad_left, bias, image_shape, input_names, output_name, output_shape):
+        print("Conv2D shape", image_shape, "->", output_shape)
         """
         collects the information needed for the conv_handle_intermediate_relu_layer transformer and brings it into the required shape
         
@@ -550,6 +551,7 @@ class DeeppolyConcat:
     def transformer(self, nn, man, element, nlb, nub, relu_groups, refine, timeout_lp, timeout_milp, use_default_heuristic, testing):
         handle_concatenation_layer(man, element, self.predecessors, len(self.predecessors))
         calc_bounds(man, element, nn, nlb, nub, relu_groups, is_refine_layer=True, destroy=False)
+        nn.concat_counter += 1
         if testing:
             return element, nlb[-1], nub[-1]
         return element
