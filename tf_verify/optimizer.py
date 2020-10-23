@@ -226,6 +226,8 @@ class Optimizer:
                 assert domain == "deeppoly", "Only DeepPoly currently supports concatenation"
                 predecessors, input_names, output_name, output_shape = self.resources[i][domain]
                 execute_list.append(DeeppolyConcat(predecessors, input_names, output_name, output_shape))
+                nn.layertypes.append('Concat')
+                nn.numlayer += 1
                 i += 1
             else:
                 assert 0, "the optimizer for" + domain + " doesn't know of the operation type " + self.operations[i]
