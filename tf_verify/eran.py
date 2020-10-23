@@ -93,6 +93,48 @@ class ERAN:
             return dominant_class, nn, nlb, nub, failed_labels, x
 
 
+    def analyze_segmentation(self, true_labels, valid_classes, specLB, specUB, domain,
+                    timeout_lp, timeout_milp, use_default_heuristic,
+                    lexpr_weights=None, lexpr_cst=None, lexpr_dim=None, uexpr_weights=None,
+                    uexpr_cst=None, uexpr_dim=None, expr_size=0, testing=False, prop=-1,
+                    spatial_constraints=None):
+        """
+        This function runs the analysis with the provided model and session from the constructor, the box specified by specLB and specUB is used as input. Currently we have three domains, 'deepzono',      		'refinezono' and 'deeppoly'.
+
+        Arguments
+        ---------
+        specLB : numpy.ndarray
+            ndarray with the lower bound of the input box
+        specUB : numpy.ndarray
+            ndarray with the upper bound of the input box
+        domain : str
+            either 'deepzono', 'refinezono', 'deeppoly', or 'refinepoly', decides which set of abstract transformers is used.
+
+        Return
+        ------
+        dominant_class : int
+            if the analysis is succesfull (it could prove robustness for this box) then the index of the class that dominates is returned
+            if the analysis couldn't prove robustness then -1 is returned
+        """
+        assert domain == "deeppoly", "domain isn't valid, must be 'deeppoly'"
+        specLB = np.reshape(specLB, (-1,))
+        specUB = np.reshape(specUB, (-1,))
+        nn = layers()
+        nn.specLB = specLB
+        nn.specUB = specUB
+
+        execute_list, output_info = self.optimizer.get_deeppoly(nn, specLB, specUB, lexpr_weights, lexpr_cst,
+                                                                lexpr_dim, uexpr_weights, uexpr_cst, uexpr_dim,
+                                                                expr_size, spatial_constraints)
+        print(execute_list)
+        print(output_info)
+        print(nn.numlayer)
+        analyzer = Analyzer(execute_list, nn, domain, timeout_lp, timeout_milp, None, use_default_heuristic, -1, prop,
+                            testing)
+        dominant_classes, nlb, nub = analyzer.analyze_segmentation(true_labels, valid_classes)
+        return dominant_classes, nlb, nub
+
+
     def analyze_zonotope(self, zonotope, domain, timeout_lp, timeout_milp, use_default_heuristic, output_constraints=None, testing = False):
         """
         This function runs the analysis with the provided model and session from the constructor, the box specified by specLB and specUB is used as input. Currently we have three domains, 'deepzono',      		'refinezono' and 'deeppoly'.

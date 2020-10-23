@@ -155,8 +155,10 @@ class Analyzer:
         testing_nlb = []
         testing_nub = []
         for i in range(1, len(self.ir_list)):
+            print(f"Executing layer {i} of type {self.ir_list[i]}") # TODO
             element_test_bounds = self.ir_list[i].transformer(self.nn, self.man, element, nlb, nub, self.relu_groups, 'refine' in self.domain, self.timeout_lp, self.timeout_milp, self.use_default_heuristic, self.testing)
 
+            print(self.testing and isinstance(element_test_bounds, tuple))
             if self.testing and isinstance(element_test_bounds, tuple):
                 element, test_lb, test_ub = element_test_bounds
                 testing_nlb.append(test_lb)
@@ -294,3 +296,38 @@ class Analyzer:
                     break
         elina_abstract0_free(self.man, element)
         return dominant_class, nlb, nub, label_failed, x
+
+    def analyze_segmentation(self, true_labels, valid_classes):
+        """
+        analyses the network with the given input
+
+        Returns
+        -------
+        output: int
+            index of the dominant class. If no class dominates then returns -1
+        """
+        element, nlb, nub = self.get_abstract0()
+
+        print(self.nn.layertypes)
+
+        number_points = len(true_labels)
+        dominant_classes = []
+
+        for n in range(number_points):
+            dominant_class = -1
+            label_failed = []
+            candidate_labels = valid_classes
+            true_label = true_labels[n]
+
+            flag = True
+            for candidate_label in candidate_labels:
+                if candidate_label != true_label and not self.is_greater(self.man, element, true_label, candidate_label, self.use_default_heuristic):
+                    flag = False
+                    label_failed.append(candidate_label)
+                    break
+            if flag:
+                dominant_class = true_label
+            dominant_classes.append(dominant_class)
+
+        elina_abstract0_free(self.man, element)
+        return dominant_classes, nlb, nub
