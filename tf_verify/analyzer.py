@@ -307,8 +307,6 @@ class Analyzer:
         """
         element, nlb, nub = self.get_abstract0()
 
-        print(self.nn.layertypes)
-
         number_points = len(true_labels)
         dominant_classes = []
 

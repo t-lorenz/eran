@@ -377,7 +377,6 @@ class DeeppolyTanhNode(DeeppolyNonlinearity):
 
 class DeeppolyConv2dNode:
     def __init__(self, filters, strides, pad_top, pad_left, bias, image_shape, input_names, output_name, output_shape):
-        print("Conv2D shape", image_shape, "->", output_shape)
         """
         collects the information needed for the conv_handle_intermediate_relu_layer transformer and brings it into the required shape
         

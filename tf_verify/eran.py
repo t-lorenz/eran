@@ -126,9 +126,6 @@ class ERAN:
         execute_list, output_info = self.optimizer.get_deeppoly(nn, specLB, specUB, lexpr_weights, lexpr_cst,
                                                                 lexpr_dim, uexpr_weights, uexpr_cst, uexpr_dim,
                                                                 expr_size, spatial_constraints)
-        print(execute_list)
-        print(output_info)
-        print(nn.numlayer)
         analyzer = Analyzer(execute_list, nn, domain, timeout_lp, timeout_milp, None, use_default_heuristic, -1, prop,
                             testing)
         dominant_classes, nlb, nub = analyzer.analyze_segmentation(true_labels, valid_classes)
