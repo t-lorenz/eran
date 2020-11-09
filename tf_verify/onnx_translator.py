@@ -262,7 +262,7 @@ def prepare_model(model):
 				shape_map[node.output[0]] = output_shape
 
 		elif node.op_type == "Concat":
-			assert node.attribute[0].i == 1, "Currently only supports concatenation on channel dimension"
+			assert node.attribute[0].i == 1, f"Currently only supports concatenation on channel dimension but got {node.attribute[0].i}"
 			concatenation_axis = 3  # channel is last dimension in ERAN
 			output_shape = list(shape_map[node.input[0]])
 			output_shape[concatenation_axis] = 0
@@ -271,6 +271,14 @@ def prepare_model(model):
 				assert shape_map[node_input][1] == output_shape[1]
 				assert shape_map[node_input][2] == output_shape[2]
 				output_shape[concatenation_axis] += shape_map[node_input][concatenation_axis]
+			shape_map[node.output[0]] = output_shape
+
+		elif node.op_type == "Tile":
+			#TODO: actually parse number of repeats, assert 1 for rest
+			repeats = 64
+			repeat_axis = 1
+			output_shape = list(shape_map[node.input[0]])
+			output_shape[repeat_axis] = repeats
 			shape_map[node.output[0]] = output_shape
 
 		# elif node.op_type == "Concat":
@@ -496,11 +504,18 @@ class ONNXTranslator:
 						operation_resources.append({'deepzono':deepzono_res, 'deeppoly':deeppoly_res})
 
 			elif node.op_type == "Concat":
-				predecessors = []
-				for node_input in node.input:
-					assert node_input in output_name_to_layer_index, f"Unable to find layer index for input {node_input}"
-					predecessors.append(output_name_to_layer_index[node_input])
-				operation_resources.append({'deeppoly': (predecessors,) + in_out_info})
+				width = shape[1]
+				height = shape[2]
+				channels = []
+				for input in node.input:
+					channels.append(self.get_shape(input)[3])
+				operation_resources.append({'deeppoly': (width, height, channels) + in_out_info})
+
+			elif node.op_type == "Tile":
+				repeats = shape[1]
+				assert shape[2] == 1, "only repeats in height are supported"
+				operation_resources.append({'deeppoly': (repeats,) + in_out_info})
+
 			else:
 				assert 0, "Operations of type " + node.op_type + " are not yet supported."
 			current_layer += 1

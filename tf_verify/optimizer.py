@@ -224,9 +224,16 @@ class Optimizer:
                 i += 1
             elif self.operations[i] == "Concat":
                 assert domain == "deeppoly", "Only DeepPoly currently supports concatenation"
-                predecessors, input_names, output_name, output_shape = self.resources[i][domain]
-                execute_list.append(DeeppolyConcat(predecessors, input_names, output_name, output_shape))
+                width, height, channels, input_names, output_name, output_shape = self.resources[i][domain]
+                execute_list.append(DeeppolyConcat(width, height, channels, input_names, output_name, output_shape))
                 nn.layertypes.append('Concat')
+                nn.numlayer += 1
+                i += 1
+            elif self.operations[i] == "Tile":
+                assert domain == "deeppoly", "Only DeepPoly currently supports tiling"
+                repeats, input_names, output_name, output_shape = self.resources[i][domain]
+                execute_list.append(DeeppolyTile(repeats, input_names, output_name, output_shape))
+                nn.layertypes.append('Tile')
                 nn.numlayer += 1
                 i += 1
             else:
